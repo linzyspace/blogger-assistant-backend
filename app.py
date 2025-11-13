@@ -10,7 +10,7 @@ keyword_responses = {
     ("hi", "hello", "hey", "ai", "what is ai", "artificial intelligent", "intelligence", "lookup ai", "look up ai", "what is good about your blog"): [
         "Hello! How can I help you today?",
         "Hi there! Great to see you!",
-        "AI is Artificial Intelligence!",
+        "AI is Artificial Intelligence! Check out this link to understand more about me https://lookupai.blogspot.com/2025/11/look-up-ai-exploring-future-of.html",
         "Hey! How’s it going?"
     ],
     ("how are you", "how's it going"): [
@@ -75,4 +75,5 @@ def chat():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
