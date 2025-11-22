@@ -1,6 +1,10 @@
 // server.js
 const express = require('express');
 const app = express();
+const PORT = 3000;
+
+// Enable JSON body parsing
+app.use(express.json());
 
 // Sample posts
 const posts = [
@@ -22,32 +26,26 @@ function searchPosts(posts, query) {
   const keywords = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
   if (keywords.length === 0) return null;
 
-  const matches = [];
-
-  for (let post of posts) {
-    const title = post.title?.toLowerCase() || "";
-    const content = stripHtml(post.content).toLowerCase();
-
-    // Match if any keyword exists (substring match)
-    const matched = keywords.some(word => title.includes(word) || content.includes(word));
-
-    if (matched) {
-      matches.push({
-        title: post.title,
-        content: stripHtml(post.content).substring(0, 500), // first 500 chars
-        url: post.url
-      });
-    }
-  }
+  const matches = posts.filter(post => {
+    const text = (post.title + " " + stripHtml(post.content)).toLowerCase();
+    return keywords.some(word => text.includes(word));
+  }).slice(0, 3);
 
   if (matches.length === 0) return null;
 
-  return matches.slice(0, 3)
-    .map(post => `From "${post.title}":\n${post.content}...\nLink: ${post.url}`)
+  return matches
+    .map(post => `From "${post.title}":\n${stripHtml(post.content).substring(0, 500)}...\nLink: ${post.url}`)
     .join("\n\n");
 }
 
-// Search endpoint
+// POST /chat endpoint for Blogger Assistant
+app.post('/chat', (req, res) => {
+  const message = req.body.message || '';
+  const reply = searchPosts(posts, message) || "No matching posts found.";
+  res.json({ reply });
+});
+
+// Optional GET /search endpoint (for testing)
 app.get('/search', (req, res) => {
   const query = req.query.q || '';
   const result = searchPosts(posts, query);
@@ -55,4 +53,6 @@ app.get('/search', (req, res) => {
 });
 
 // Start server
-app.listen(3000, () => console.log('Server running on http://localhost:3000'));
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
