@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import fetch from "node-fetch";
+import axios from "axios";
 
 const app = express();
 app.use(cors());
@@ -11,56 +11,73 @@ const API_KEY = "AIzaSyCaUZEDFK50huQDi-WLKjUwOHEp0h";
 
 let blogPosts = [];
 
-// Fetch posts from Blogger
+// Fetch all blogger posts on startup
 async function loadBlogPosts() {
   try {
-    const url = `https://www.googleapis.com/blogger/v3/blogs/${BLOG_ID}/posts?maxResults=200&key=${API_KEY}`;
-    const res = await fetch(url);
-    const data = await res.json();
-    blogPosts = data.items || [];
-    console.log(`Loaded ${blogPosts.length} blog posts`);
-  } catch (err) {
-    console.error("Failed to load blog posts:", err);
+    console.log("Fetching Blogger posts...");
+
+    const url = `https://www.googleapis.com/blogger/v3/blogs/${BLOG_ID}/posts?key=${API_KEY}`;
+    const res = await axios.get(url);
+
+    blogPosts = res.data.items || [];
+
+    console.log(`Loaded ${blogPosts.length} blog posts.`);
+  } catch (error) {
+    console.error("Error loading blog posts:", error.message);
   }
 }
 
-// Load on startup
 loadBlogPosts();
 
-// Reload every hour
-setInterval(loadBlogPosts, 3600000);
+app.get("/", (req, res) => {
+  res.send("Blogger Assistant is running.");
+});
 
-// Simple keyword search
-function searchBlog(query) {
-  const q = query.toLowerCase();
-  return blogPosts
-    .filter(post =>
-      (post.title && post.title.toLowerCase().includes(q)) ||
-      (post.content && post.content.toLowerCase().includes(q))
-    )
-    .slice(0, 3); // top 3
-}
+// Main chat route
+app.post("/chat", (req, res) => {
+  const userMessage = req.body.message.toLowerCase();
 
-app.post("/chat", async (req, res) => {
-  const userMsg = req.body.message || "";
+  if (!userMessage) {
+    return res.json({ reply: "Please enter a message." });
+  }
 
-  const results = searchBlog(userMsg);
+  // Search posts
+  let matches = [];
+  blogPosts.forEach(post => {
+    const content = (post.content || "").toLowerCase();
+    const title = (post.title || "").toLowerCase();
 
-  if (results.length === 0) {
+    if (content.includes(userMessage) || title.includes(userMessage)) {
+      matches.push({
+        title: post.title,
+        url: post.url,
+        snippet: post.content.substring(0, 300)
+      });
+    }
+  });
+
+  // No matches found
+  if (matches.length === 0) {
     return res.json({
-      reply: "I couldn't find anything in your blog about that topic."
+      reply: "I couldn’t find anything about that in your Blogger content."
     });
   }
 
-  let reply = "Here’s what I found from your blog:\n\n";
+  // Found matches → return the best one
+  const best = matches[0];
 
-  results.forEach(post => {
-    reply += `📝 **${post.title}**\n`;
-    reply += post.content.replace(/<[^>]*>?/gm, "").slice(0, 500);
-    reply += "\n\n";
+  res.json({
+    reply: `Here’s what I found from your blog:
+
+🔹 **${best.title}**
+${best.snippet}...
+
+Full post: ${best.url}`
   });
-
-  res.json({ reply });
 });
 
-app.listen(3000, () => console.log("Server running on port 3000"));
+// Render listen port
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
