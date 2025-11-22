@@ -7,10 +7,16 @@ CORS(app)
 
 # Keyword-based responses with multiple options
 keyword_responses = {
-    ("hi", "hello", "hey", "ai", "what is ai", "artificial intelligent", "intelligence", "lookup ai", "look up ai", "what is good about your blog"): [
+    ("hi", "hello", "hey"): [
         "Hello! How can I help you today?",
         "Hi there! Great to see you!",
         "Hey! How’s it going?"
+    ],
+    ("what is ai", "ai", "what is good about your blog"): [
+        "AI is Artificial Intelligent"
+    ],
+    ("what is good about your blog?"): [
+        "You can check out my blog for more information"
     ],
     ("how are you", "how's it going"): [
         "I'm just a bot, but I'm ready to chat!",
@@ -74,3 +80,4 @@ def chat():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
