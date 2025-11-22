@@ -1,25 +1,22 @@
-const bloggerService = require("../services/bloggerService");
-const { searchPosts } = require("../utils/searchUtils");
+const defaultResponses = require("../data/defaultResponses");
+const { matchKeyword } = require("../utils/keywordMatcher");
+const { fetchPosts, findMatchingPost } = require("../services/bloggerService");
 
-exports.handleChat = async (req, res) => {
-  try {
-    const { message } = req.body;
-    if (!message) return res.json({ reply: "Please send a message." });
+async function chatHandler(req, res) {
+  const { message } = req.body;
+  if (!message) return res.status(400).json({ reply: "No message provided." });
 
-    // Fetch all posts
-    const posts = await bloggerService.getAllPosts();
+  // Check predefined responses
+  const predefinedReply = matchKeyword(message, defaultResponses);
+  if (predefinedReply) return res.json({ reply: predefinedReply });
 
-    // Search posts
-    const result = searchPosts(posts, message);
+  // Fetch posts and find match
+  const posts = await fetchPosts();
+  const postReply = findMatchingPost(message, posts);
+  if (postReply) return res.json({ reply: postReply });
 
-    if (!result) {
-      return res.json({ reply: "Sorry, I couldn't find anything relevant in your blog." });
-    }
+  // Default fallback
+  res.json({ reply: "I couldn't find a related post. Can you ask something else?" });
+}
 
-    return res.json({ reply: result });
-  } catch (err) {
-    console.error(err);
-    res.json({ reply: "Error fetching blog content." });
-  }
-};
-
+module.exports = { chatHandler };
