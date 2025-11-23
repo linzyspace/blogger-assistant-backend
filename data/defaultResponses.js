@@ -1,3 +1,5 @@
+const bloggerService = require('../services/bloggerService'); // service to fetch blog content
+
 module.exports = {
   replies: [
     // Greetings
@@ -67,10 +69,12 @@ module.exports = {
     { keywords: ["quote", "motivation"], reply: "Here's a quote: 'The best way to predict the future is to create it.' – Peter Drucker" }
   ],
 
-  // Function to get reply or fallback to Google
-  getReply: function(userMessage) {
+
+  // Get reply or pull from blog
+  getReply: async function(userMessage) {
     const msg = userMessage.toLowerCase();
 
+    // 1️⃣ Check predetermined replies
     for (const item of this.replies) {
       for (const keyword of item.keywords) {
         if (msg.includes(keyword)) {
@@ -79,8 +83,14 @@ module.exports = {
       }
     }
 
-    // No match → fallback to Google search
-    const googleSearchUrl = `https://www.google.com/search?q=${encodeURIComponent(userMessage)}`;
-    return `I’m not sure about that. You can try searching here: <a href="${googleSearchUrl}" target="_blank">Google Search</a>`;
+    // 2️⃣ Check Blogger content
+    const blogReply = await bloggerService.searchPosts(userMessage);
+    if (blogReply) {
+      return blogReply;
+    }
+
+    // 3️⃣ No fallback, just respond with empty or default text
+    return "Sorry, I couldn't find a relevant answer in my knowledge base or blog posts.";
   }
 };
+
