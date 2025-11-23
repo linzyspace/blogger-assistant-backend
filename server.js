@@ -1,97 +1,34 @@
-import express from "express";
-import cors from "cors";
-import axios from "axios";
-import * as cheerio from "cheerio";
+const express = require("express");
+const cors = require("cors");
+const chatbot = require("./data/defaultResponses"); // adjust path if needed
+const cheerio = require("cheerio");
 
 const app = express();
-
-app.use(cors());
 app.use(express.json());
+app.use(cors());
 
-// ------------------------------------------------------
-// ⭐ BLOGGER SCRAPER FUNCTION
-// ------------------------------------------------------
-async function scrapeBlogger(url) {
-  try {
-    const { data } = await axios.get(url, {
-      headers: { "User-Agent": "Mozilla/5.0" }
-    });
-
-    const $ = cheerio.load(data);
-
-    // Blogger usually stores content in these selectors:
-    const content =
-      $(".post-body").html() ||
-      $(".entry-content").html() ||
-      $(".post").html();
-
-    return content || null;
-  } catch (err) {
-    return null;
-  }
-}
-
-// ------------------------------------------------------
-// ⭐ ENDPOINT 1 — DIRECT SCRAPE (Front-End Can Call It)
-// ------------------------------------------------------
-app.get("/blog", async (req, res) => {
-  const url = req.query.url;
-
-  if (!url) {
-    return res.json({ error: "Missing ?url parameter" });
-  }
-
-  const content = await scrapeBlogger(url);
-
-  if (!content) {
-    return res.json({ error: "Unable to extract Blogger article content." });
-  }
-
-  res.json({ content });
-});
-
-// ------------------------------------------------------
-// ⭐ ENDPOINT 2 — CHATBOT HANDLES BLOGGER LINKS AUTOMATICALLY
-// ------------------------------------------------------
+// Chat endpoint
 app.post("/chat", async (req, res) => {
+  const { message } = req.body;
+
+  if (!message || message.trim() === "") {
+    return res.json({ reply: "Please enter a valid message." });
+  }
+
   try {
-    const { message } = req.body;
-
-    // Detect any Blogger URL in the message
-    const blogUrlMatch = message.match(/https?:\/\/[^\s]+\.blogspot\.com[^\s]*/i);
-
-    if (blogUrlMatch) {
-      const blogUrl = blogUrlMatch[0];
-
-      const content = await scrapeBlogger(blogUrl);
-
-      if (!content) {
-        return res.json({
-          reply: "❌ I couldn't extract the content from that Blogger link."
-        });
-      }
-
-      return res.json({
-        reply: content
-      });
-    }
-
-    // Normal chatbot fallback
-    res.json({
-      reply: "Chat response here"
-    });
-
-  } catch (error) {
-    res.json({
-      reply: "Server error: " + error.message
-    });
+    const replyText = await chatbot.getReply(message);
+    return res.json({ reply: replyText });
+  } catch (err) {
+    console.error("Error processing chat:", err);
+    return res.json({ reply: "Server error. Please try again later." });
   }
 });
 
-// ------------------------------------------------------
-// START SERVER
-// ------------------------------------------------------
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log("Server running on port " + PORT);
+// Health check endpoint
+app.get("/", (req, res) => {
+  res.send("Blogger Assistant Backend is running!");
 });
+
+// Start server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
