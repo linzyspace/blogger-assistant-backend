@@ -1,34 +1,55 @@
-const express = require("express");
-const cors = require("cors");
-const chatbot = require("./data/defaultResponses"); // adjust path if needed
-const cheerio = require("cheerio");
+import express from "express";
+import cors from "cors";
+import axios from "axios";
+import * as cheerio from "cheerio";
 
 const app = express();
-app.use(express.json());
-app.use(cors());
 
-// Chat endpoint
+app.use(cors());
+app.use(express.json());
+
+// -------------------------
+// EXISTING CHAT ENDPOINT
+// -------------------------
 app.post("/chat", async (req, res) => {
   const { message } = req.body;
+  
+  // Your existing chat logic…
+  res.json({ reply: "Chat response here" });
+});
 
-  if (!message || message.trim() === "") {
-    return res.json({ reply: "Please enter a valid message." });
-  }
-
+// -------------------------
+// ⭐ ADD THIS: Blogger Content Scraper
+// -------------------------
+app.get("/blog", async (req, res) => {
   try {
-    const replyText = await chatbot.getReply(message);
-    return res.json({ reply: replyText });
+    const url = req.query.url;
+    if (!url) return res.json({ error: "Missing ?url parameter" });
+
+    const { data } = await axios.get(url, {
+      headers: { "User-Agent": "Mozilla/5.0" }
+    });
+
+    const $ = cheerio.load(data);
+
+    // Blogger posts normally store content in .post-body or .entry-content
+    const content =
+      $(".post-body").html() ||
+      $(".entry-content").html() ||
+      $(".post").html();
+
+    if (!content) {
+      return res.json({ error: "Unable to extract Blogger article content." });
+    }
+
+    res.json({ content });
   } catch (err) {
-    console.error("Error processing chat:", err);
-    return res.json({ reply: "Server error. Please try again later." });
+    res.json({ error: err.message });
   }
 });
 
-// Health check endpoint
-app.get("/", (req, res) => {
-  res.send("Blogger Assistant Backend is running!");
-});
-
-// Start server
+// -------------------------
+// START SERVER
+// -------------------------
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => console.log("Server running on port " + PORT));
