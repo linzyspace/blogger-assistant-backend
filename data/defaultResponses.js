@@ -1,96 +1,114 @@
-const bloggerService = require('../services/bloggerService'); // service to fetch blog content
+const bloggerService = require('../services/bloggerService'); 
 
 module.exports = {
   replies: [
-    // Greetings
-    { keywords: ["hello", "hi", "hey", "good morning", "good afternoon", "good evening"], reply: "Hello! How can I help you today?" },
-    { keywords: ["how are you", "how's it going", "how do you do"], reply: "I'm doing great, thanks for asking! How about you?" },
-    { keywords: ["what's up", "sup"], reply: "All good here! How about you?" },
+    // --------------------- GREETINGS ---------------------
+    { keywords: ["hello", "hi", "hey", "yo", "hiya"], reply: "Hello! How can I help you today? 😊" },
+    { keywords: ["good morning"], reply: "Good morning! Hope your day starts amazing!" },
+    { keywords: ["good afternoon"], reply: "Good afternoon! How’s your day going?" },
+    { keywords: ["good evening"], reply: "Good evening! Need help with anything?" },
 
-    // Small talk
-    { keywords: ["name", "who are you"], reply: "I'm your friendly assistant, here to help you with Blogger and more!" },
-    { keywords: ["joke", "funny"], reply: "Why did the developer go broke? Because he used up all his cache!" },
-    { keywords: ["weather", "forecast"], reply: "I can't fetch live weather, but you can check your local weather app!" },
-    { keywords: ["time", "current time"], reply: "I can't tell the real time, but you can check your device clock!" },
-    { keywords: ["date", "today's date"], reply: "I can't fetch the exact date, but your device calendar will have it!" },
+    // --------------------- SMALL TALK ---------------------
+    { keywords: ["how are you"], reply: "I'm doing great, thanks for asking! How about you?" },
+    { keywords: ["what's up", "sup"], reply: "All good here! What’s going on with you?" },
+    { keywords: ["who are you", "your name"], reply: "I’m your friendly AI assistant!" },
 
-    // Thanks / Appreciation
-    { keywords: ["thank you", "thanks", "thank"], reply: "You're welcome! Happy to help." },
-    { keywords: ["appreciate", "grateful"], reply: "I appreciate your kind words!" },
+    // --------------------- THANKS ---------------------
+    { keywords: ["thank you", "thanks"], reply: "You're welcome! Happy to help! 😊" },
+    { keywords: ["appreciate"], reply: "Aww, I appreciate you too!" },
 
-    // Goodbyes
-    { keywords: ["bye", "goodbye", "see you", "farewell"], reply: "Goodbye! Have a nice day!" },
-    { keywords: ["see ya", "catch you later"], reply: "See you later! Take care!" },
+    // --------------------- GOODBYES ---------------------
+    { keywords: ["bye", "goodbye", "see you"], reply: "Goodbye! Take care! 👋" },
 
-    // Help & support
-    { keywords: ["help", "support", "assist", "assistance"], reply: "Sure! What do you need help with?" },
-    { keywords: ["question", "problem", "issue"], reply: "Please tell me more about your problem so I can assist you better." },
-    { keywords: ["how to", "guide", "tutorial"], reply: "I can provide step-by-step guidance. What specifically do you need help with?" },
-    { keywords: ["error", "bug", "issue"], reply: "Can you describe the error message or issue in detail?" },
-
-    // Blogger / blog-specific
+    // --------------------- BLOGGER SPECIFIC ---------------------
     { keywords: ["blog", "post", "article"], reply: "I can help you find blog posts or answer questions about Blogger!" },
-    { keywords: ["image", "photo", "picture"], reply: "I can show images if available in the post." },
-    { keywords: ["pdf", "document", "word"], reply: "I can provide links to PDFs or Word documents if they exist." },
-    { keywords: ["video", "youtube"], reply: "I can link videos if available in the blog post." },
-    { keywords: ["link", "url"], reply: "I can provide clickable links to posts, documents, or resources." },
-    { keywords: ["comments", "feedback"], reply: "I can tell you how to manage comments or reply to readers." },
-    { keywords: ["template", "theme"], reply: "I can help you choose or customize Blogger templates." },
-    { keywords: ["analytics", "traffic"], reply: "I can explain how to check your blog traffic or analytics." },
-    { keywords: ["seo", "search engine optimization"], reply: "I can give tips for improving your blog's SEO." },
+    { keywords: ["image", "photo"], reply: "If the post contains images, I’ll pull them up for you!" },
+    { keywords: ["pdf", "document", "word"], reply: "I can fetch PDFs and Word documents if they exist in the post." },
+    { keywords: ["video", "youtube"], reply: "I can show YouTube or embedded videos from your blog posts." },
+    { keywords: ["seo"], reply: "Improving your SEO starts with keywords, quality content, and clean structure." },
 
-    // Programming / tech
-    { keywords: ["code", "programming", "javascript", "python"], reply: "I can assist with coding questions or provide examples." },
-    { keywords: ["api", "endpoint", "request"], reply: "I can guide you on using APIs or sending HTTP requests." },
-    { keywords: ["database", "sql", "mongodb"], reply: "I can explain database queries or help debug your database." },
-    { keywords: ["server", "backend", "node"], reply: "I can help with backend setup, Node.js, or server issues." },
-    { keywords: ["frontend", "html", "css", "react"], reply: "I can assist with frontend development or styling." },
-    
-    // Artificial Intelligence
-    { keywords: ["ai", "artificial intelligence"], reply: "Artificial Intelligence (AI) is the simulation of human intelligence processes by machines." },
-    { keywords: ["machine learning", "ml"], reply: "Machine Learning (ML) is a subset of AI that enables systems to learn from data and improve over time." },
-    { keywords: ["deep learning", "neural network"], reply: "Deep Learning uses neural networks with multiple layers to model complex patterns in data." },
-    { keywords: ["nlp", "natural language processing"], reply: "NLP enables machines to understand, interpret, and respond to human language." },
-    { keywords: ["llm", "large language model"], reply: "LLMs are AI models trained on vast amounts of text to generate human-like responses." },
-    { keywords: ["chatbot"], reply: "A chatbot is a program designed to simulate conversation with human users, often using AI." },
-    { keywords: ["reinforcement learning", "rl"], reply: "Reinforcement Learning is an ML approach where agents learn by trial and error to maximize rewards." },
-    { keywords: ["computer vision", "cv"], reply: "Computer Vision is a field of AI that enables machines to interpret and understand visual information." },
-    { keywords: ["supervised learning"], reply: "Supervised learning uses labeled data to train models to predict outputs from inputs." },
-    { keywords: ["unsupervised learning"], reply: "Unsupervised learning finds patterns or structures in data without labeled outputs." },
-    { keywords: ["ai ethics", "ethics in ai"], reply: "AI ethics deals with moral issues, fairness, transparency, and accountability in AI systems." },
-    { keywords: ["model training", "training ai"], reply: "Model training involves feeding data to an AI model and adjusting parameters to improve performance." },
-    { keywords: ["predictive analytics"], reply: "Predictive analytics uses historical data and AI models to predict future outcomes." },
-    { keywords: ["data science"], reply: "Data Science involves extracting insights and knowledge from data using statistics, AI, and ML techniques." },
-    { keywords: ["automation"], reply: "AI-driven automation uses machines or software to perform tasks with minimal human intervention." },
+    // --------------------- TECH & AI ---------------------
+    { keywords: ["ai", "artificial intelligence"], reply: "AI is the simulation of human intelligence in machines." },
+    { keywords: ["machine learning"], reply: "Machine learning teaches computers to learn from data." },
+    { keywords: ["deep learning"], reply: "Deep learning uses multi-layer neural networks to learn patterns." },
+    { keywords: ["chatbot"], reply: "Chatbots simulate conversation using natural language models." },
+    { keywords: ["coding", "programming"], reply: "Coding is fun! What language are you working on?" },
+    { keywords: ["api"], reply: "APIs allow systems to communicate. Want help with one?" },
 
-    // Fun / casual
-    { keywords: ["riddle", "puzzle"], reply: "I love riddles! Ask me one and I’ll try to solve it." },
-    { keywords: ["game", "play"], reply: "I can suggest games or small interactive activities." },
-    { keywords: ["quote", "motivation"], reply: "Here's a quote: 'The best way to predict the future is to create it.' – Peter Drucker" }
+    // --------------------- SPORTS (MIXED STYLE) ---------------------
+    { keywords: ["sports", "athletics"], reply: "Sports are a great way to stay active! What sport do you like?" },
+    { keywords: ["basketball"], reply: "Basketball is fast-paced and exciting—who's your favorite player?" },
+    { keywords: ["soccer", "football"], reply: "Soccer is the world’s most popular sport! ⚽" },
+    { keywords: ["baseball"], reply: "Baseball is all about strategy, patience, and timing." },
+    { keywords: ["boxing", "mma"], reply: "Combat sports require discipline, strength, and mental focus!" },
+
+    // --------------------- HOBBIES ---------------------
+    { keywords: ["hobby", "hobbies"], reply: "Hobbies help you relax and grow! What do you enjoy doing?" },
+    { keywords: ["cooking"], reply: "Cooking is both art and science. What's your favorite dish?" },
+    { keywords: ["music"], reply: "Music makes life better! What do you like listening to?" },
+    { keywords: ["reading"], reply: "Reading expands the mind—fiction or nonfiction?" },
+    { keywords: ["photography"], reply: "Photography is storytelling through images 📷" },
+
+    // --------------------- TRAVEL ---------------------
+    { keywords: ["travel", "traveling"], reply: "Travel opens your mind! What destination is on your bucket list?" },
+    { keywords: ["flight", "vacation"], reply: "Planning a vacation? I can help suggest ideas!" },
+    { keywords: ["beach"], reply: "Beaches are perfect for relaxing—sun, sand, and waves 🌊" },
+    { keywords: ["hotel"], reply: "Looking for hotel tips? I can help you pick a good one." },
+
+    // --------------------- COMICS / FUN ---------------------
+    { keywords: ["comic", "comics"], reply: "Comics are awesome! Marvel or DC?" },
+    { keywords: ["anime"], reply: "Anime has some of the best storytelling and art styles!" },
+    { keywords: ["manga"], reply: "Manga fans unite! What are you reading lately?" },
+    { keywords: ["superhero"], reply: "Superheroes teach us courage and creativity!" },
+
+    // --------------------- LIFESTYLE ---------------------
+    { keywords: ["lifestyle"], reply: "Lifestyle is all about habits that shape your well-being." },
+    { keywords: ["fitness"], reply: "Fitness keeps your body and mind strong! 💪" },
+    { keywords: ["health"], reply: "Staying healthy is a daily practice!" },
+    { keywords: ["diet"], reply: "Balanced diets improve energy, mood, and longevity." },
+
+    // --------------------- GAMES ---------------------
+    { keywords: ["game", "gaming"], reply: "Gaming is fun! What do you play?" },
+    { keywords: ["playstation", "ps5"], reply: "PlayStation has awesome exclusives. What’s your favorite?" },
+    { keywords: ["xbox"], reply: "Xbox is great for Game Pass fans!" },
+    { keywords: ["nintendo", "switch"], reply: "Nintendo brings nostalgia and fun! Mario? Zelda?" },
+    { keywords: ["mobile game"], reply: "Mobile games are perfect for quick entertainment!" },
+
+    // --------------------- BUSINESS ---------------------
+    { keywords: ["business"], reply: "Business is about value, strategy, and innovation." },
+    { keywords: ["startup"], reply: "Startups thrive on creativity, risk, and solving problems." },
+    { keywords: ["marketing"], reply: "Marketing is storytelling that sells!" },
+    { keywords: ["sales"], reply: "Sales is about understanding customer needs." },
+    { keywords: ["finance"], reply: "Finance helps you manage money, risk, and investments." },
+
+    // --------------------- POLITICS ---------------------
+    { keywords: ["politics", "government"], reply: "Politics shapes our society through laws and decisions." },
+    { keywords: ["election"], reply: "Elections give people a voice in leadership." },
+    { keywords: ["policy"], reply: "Policies guide how governments solve problems." },
+
+    // --------------------- FUN CASUAL ---------------------
+    { keywords: ["riddle"], reply: "I love riddles! Ask me one 😄" },
+    { keywords: ["puzzle"], reply: "Puzzles keep your mind sharp!" },
+    { keywords: ["joke"], reply: "Why did the AI cross the road? To optimize the chicken’s path!" }
   ],
 
 
-  // Get reply or pull from blog
-  getReply: async function(userMessage) {
+  // --------------------- MAIN HANDLER ---------------------
+  getReply: async function (userMessage) {
     const msg = userMessage.toLowerCase();
 
-    // 1️⃣ Check predetermined replies
+    // 1️⃣ Check keyword matches
     for (const item of this.replies) {
-      for (const keyword of item.keywords) {
-        if (msg.includes(keyword)) {
-          return item.reply;
-        }
+      if (item.keywords.some(keyword => msg.includes(keyword))) {
+        return item.reply;
       }
     }
 
-    // 2️⃣ Check Blogger content
-    const blogReply = await bloggerService.searchPosts(userMessage);
-    if (blogReply) {
-      return blogReply;
-    }
+    // 2️⃣ Search blog posts + pages
+    const blogResult = await bloggerService.searchAllContent(userMessage);
+    if (blogResult) return blogResult;
 
-    // 3️⃣ No fallback, just respond with empty or default text
-    return "Sorry, I couldn't find a relevant answer in my knowledge base or blog posts.";
+    // 3️⃣ If nothing found
+    return "Sorry, I couldn't find anything that matches your question in my knowledge or your blog content.";
   }
 };
-
