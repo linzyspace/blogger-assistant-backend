@@ -1,8 +1,8 @@
 const axios = require("axios");
 const cheerio = require("cheerio");
 
-const BLOG_ID = process.env.BLOGGER_BLOG_ID;
-const API_KEY = process.env.BLOGGER_API_KEY;
+const BLOG_ID = BLOGGER_BLOG_ID;
+const API_KEY = BLOGGER_API_KEY;
 
 const BASE = `https://www.googleapis.com/blogger/v3/blogs/${BLOG_ID}`;
 
