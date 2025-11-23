@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const chatbot = require("./data/defaultResponses"); // adjust path if needed
+const cheerio = require("cheerio");
 
 const app = express();
 app.use(express.json());
