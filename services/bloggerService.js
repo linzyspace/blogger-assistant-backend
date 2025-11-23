@@ -1,235 +1,122 @@
-/**
- * services/bloggerService.js
- *
- * Provides searchAllContent(query) to search Blogger posts and pages,
- * extract snippets, images, PDF/DOC links and return an HTML-formatted reply.
- *
- * Requirements: axios (npm install axios)
- */
+const axios = require("axios");
+const cheerio = require("cheerio");
 
-const axios = require('axios');
+const BLOG_ID = process.env.BLOGGER_BLOG_ID;
+const API_KEY = process.env.BLOGGER_API_KEY;
 
-// ---------- CONFIG ----------
-const BLOG_ID = process.env.BLOGGER_BLOG_ID || 'YOUR_NUMERIC_BLOG_ID'; // numeric blog id
-const API_KEY = process.env.BLOGGER_API_KEY || 'YOUR_BLOGGER_API_KEY';
-const MAX_RESULTS = 50; // max posts/pages to fetch per request
-const MAX_IMAGES = 5; // limit images returned per post/page
-// ----------------------------
+const BASE = `https://www.googleapis.com/blogger/v3/blogs/${BLOG_ID}`;
 
-if (!BLOG_ID || BLOG_ID === 'YOUR_NUMERIC_BLOG_ID') {
-  console.error('BloggerService: WARNING - BLOG_ID is not set or is a placeholder. Set process.env.BLOGGER_BLOG_ID or update the file.');
-}
-if (!API_KEY || API_KEY === 'YOUR_BLOGGER_API_KEY') {
-  console.error('BloggerService: WARNING - API_KEY is not set or is a placeholder. Set process.env.BLOGGER_API_KEY or update the file.');
-}
-
-/**
- * Utility: strip HTML tags and condense whitespace
- */
-function stripHtml(html = '') {
-  return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-}
-
-/**
- * Utility: extract image src attributes from HTML (returns unique list)
- */
-function extractImageSrcs(html = '') {
-  const imgs = [];
-  const imgRegex = /<img[^>]+src=(?:'|")([^'"]+)(?:'|")[^>]*>/gi;
-  let m;
-  while ((m = imgRegex.exec(html)) !== null) {
-    let src = m[1].trim();
-    if (!src) continue;
-    // Add protocol if missing but starts with //
-    if (src.startsWith('//')) src = 'https:' + src;
-    // If relative (starts with /) we cannot fix reliably; skip or keep as-is
-    imgs.push(src);
-  }
-  // deduplicate preserving order
-  return [...new Set(imgs)];
-}
-
-/**
- * Utility: extract file links (pdf, doc, docx)
- */
-function extractFiles(html = '') {
-  const files = { pdfs: [], docs: [] };
-  const hrefRegex = /href=(?:'|")([^'"]+)(?:'|")/gi;
-  let m;
-  while ((m = hrefRegex.exec(html)) !== null) {
-    const href = m[1].trim();
-    if (!href) continue;
-    const lower = href.toLowerCase();
-    if (lower.endsWith('.pdf')) files.pdfs.push(href);
-    if (lower.endsWith('.doc') || lower.endsWith('.docx')) files.docs.push(href);
-  }
-  // dedupe
-  files.pdfs = [...new Set(files.pdfs)];
-  files.docs = [...new Set(files.docs)];
-  return files;
-}
-
-/**
- * Fetch posts from Blogger API (returns array of post objects or empty array)
- */
-async function fetchPosts() {
-  try {
-    const url = `https://www.googleapis.com/blogger/v3/blogs/${BLOG_ID}/posts?maxResults=${MAX_RESULTS}&key=${API_KEY}`;
-    // Debug:
-    // console.log('BloggerService: fetchPosts url=', url);
-    const res = await axios.get(url);
-    return res.data.items || [];
-  } catch (err) {
-    // Propagate a friendly error message but don't throw fatal
-    console.error('BloggerService: Error fetching posts:', err.response?.status, err.response?.data || err.message);
-    return [];
-  }
-}
-
-/**
- * Fetch pages from Blogger API (returns array of page objects or empty array)
- */
-async function fetchPages() {
-  try {
-    const url = `https://www.googleapis.com/blogger/v3/blogs/${BLOG_ID}/pages?maxResults=${MAX_RESULTS}&key=${API_KEY}`;
-    // console.log('BloggerService: fetchPages url=', url);
-    const res = await axios.get(url);
-    return res.data.items || [];
-  } catch (err) {
-    console.error('BloggerService: Error fetching pages:', err.response?.status, err.response?.data || err.message);
-    return [];
-  }
-}
-
-/**
- * Choose the best matching post/page from a list based on query
- * Returns object { source: 'post'|'page', item: <item> } or null
- */
-function findBestMatch(items = [], query = '') {
-  if (!items || items.length === 0) return null;
-  const q = query.toLowerCase();
-
-  // scoring: title matches higher than content; exact phrase wins
-  let best = null;
-  let bestScore = 0;
-
-  for (const it of items) {
-    const title = (it.title || '').toLowerCase();
-    const content = (it.content || '').toLowerCase();
-    let score = 0;
-
-    if (title.includes(q)) score += 100;
-    if (content.includes(q)) score += 50;
-
-    // Boost if exact phrase appears (boundary)
-    const phraseRegex = new RegExp('\\b' + escapeRegExp(q) + '\\b', 'i');
-    if (phraseRegex.test(title)) score += 200;
-    if (phraseRegex.test(content)) score += 100;
-
-    // small boost for shorter distance (not implemented: would require indexOf)
-    if (score > bestScore) {
-      bestScore = score;
-      best = it;
+module.exports = {
+  
+  // 🔍 Fetch all posts
+  fetchPosts: async function () {
+    try {
+      const res = await axios.get(`${BASE}/posts?maxResults=500&key=${API_KEY}`);
+      return res.data.items || [];
+    } catch (err) {
+      console.error("❌ ERROR fetching Blogger POSTS");
+      console.error("Status:", err.response?.status);
+      console.error("Message:", err.response?.data);
+      return [];
     }
-  }
+  },
 
-  return best ? { item: best, score: bestScore } : null;
-}
+  // 🔍 Fetch all pages
+  fetchPages: async function () {
+    try {
+      const res = await axios.get(`${BASE}/pages?maxResults=200&key=${API_KEY}`);
+      return res.data.items || [];
+    } catch (err) {
+      console.error("❌ ERROR fetching Blogger PAGES");
+      console.error("Status:", err.response?.status);
+      console.error("Message:", err.response?.data);
+      return [];
+    }
+  },
 
-/**
- * Escape RegExp special characters in a string
- */
-function escapeRegExp(string) {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
+  // 🧠 Clean HTML to plain text
+  stripHTML(html) {
+    return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  },
 
-/**
- * Build HTML response for a matched item (post or page)
- */
-function buildHtmlForItem(item) {
-  if (!item) return null;
+  // 🖼 Extract image URLs
+  extractImages(html) {
+    const $ = cheerio.load(html);
+    const images = [];
 
-  const title = item.title || 'Untitled';
-  const url = item.url || item.selfLink || '#';
-  const rawContent = item.content || '';
-  const textSnippet = stripHtml(rawContent).slice(0, 300);
+    $("img").each((_, img) => {
+      const src = $(img).attr("src");
+      if (src) images.push(src);
+    });
 
-  // images
-  const allImgs = extractImageSrcs(rawContent);
-  const images = allImgs.slice(0, MAX_IMAGES);
-  const imageHtml = images.map(src => `<br><img src="${src}" style="max-width:100%; border-radius:8px; margin-top:6px;">`).join('');
+    return images;
+  },
 
-  // files
-  const files = extractFiles(rawContent);
-  let filesHtml = '';
-  files.pdfs.forEach((p) => {
-    filesHtml += `<br><a href="${p}" target="_blank" rel="noopener">📕 PDF Document</a>`;
-  });
-  files.docs.forEach((d) => {
-    filesHtml += `<br><a href="${d}" target="_blank" rel="noopener">📝 Word Document</a>`;
-  });
+  // 📄 Extract PDFs, DOCs, XLS, PPT
+  extractFiles(html) {
+    const fileRegex = /(https?:\/\/[^\s"'<>]+\.(pdf|doc|docx|xls|xlsx|ppt|pptx))/gi;
+    const matches = html.match(fileRegex);
+    return matches || [];
+  },
 
-  // Compose HTML - include title, snippet, read more, images and files
-  const html = `
-    <div style="font-family: Arial, sans-serif;">
-      <strong>${escapeHtml(title)}</strong><br>
-      <div style="margin-top:6px;">${escapeHtml(textSnippet)}${textSnippet.length >= 300 ? '...' : ''}</div>
-      <div style="margin-top:8px;"><a href="${url}" target="_blank" rel="noopener">Read more</a></div>
-      ${imageHtml}
-      ${filesHtml}
-    </div>
-  `;
-  return html;
-}
+  // 🔍 Main search function
+  searchPosts: async function (query) {
+    const q = query.toLowerCase();
 
-/**
- * basic HTML escape for title/snippet safety
- */
-function escapeHtml(str = '') {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-}
+    console.log("🔍 Searching Blogger content for:", q);
 
-/**
- * Public function: searchAllContent(query)
- *
- * Steps:
- *  - Fetch posts and pages
- *  - Combine them and find best match using findBestMatch
- *  - If match found, return buildHtmlForItem(match)
- *  - Otherwise return null
- */
-async function searchAllContent(query) {
-  if (!query || !query.trim()) return null;
-  try {
-    // Fetch posts and pages in parallel
-    const [posts, pages] = await Promise.all([fetchPosts(), fetchPages()]);
+    // Fetch both posts & pages
+    const [posts, pages] = await Promise.all([this.fetchPosts(), this.fetchPages()]);
 
-    // Combine into a list with some marker if needed (we only need item)
-    const combined = [];
-    if (posts && posts.length) combined.push(...posts);
-    if (pages && pages.length) combined.push(...pages);
+    console.log("👉 Posts found:", posts.length);
+    console.log("👉 Pages found:", pages.length);
 
-    if (combined.length === 0) {
-      // nothing to search
+    const all = [...posts, ...pages];
+
+    if (all.length === 0) {
+      console.error("❌ No posts/pages fetched. API NOT RETURNING DATA.");
       return null;
     }
 
-    // find best match
-    const match = findBestMatch(combined, query);
-    if (!match || !match.item) return null;
+    // Try exact match first
+    let match = all.find(item =>
+      item.title?.toLowerCase().includes(q) ||
+      this.stripHTML(item.content || "").toLowerCase().includes(q)
+    );
 
-    // build html for matched item
-    const html = buildHtmlForItem(match.item);
-    return html;
-  } catch (err) {
-    console.error('BloggerService: Error in searchAllContent:', err.message || err);
-    return null;
+    // If no exact, try fuzzy partial match
+    if (!match) {
+      match = all.find(item => {
+        const text = this.stripHTML(item.content || "").toLowerCase();
+        return q.split(" ").some(word => text.includes(word));
+      });
+    }
+
+    if (!match) {
+      console.log("❌ No content match found inside blog.");
+      return null;
+    }
+
+    // Prepare extracted content
+    const text = this.stripHTML(match.content || "");
+    const snippet = text.substring(0, 400) + "...";
+
+    const images = this.extractImages(match.content);
+    const files = this.extractFiles(match.content);
+
+    let response = `📌 **Found something from your blog:**\n\n`;
+    response += `**${match.title}**\n`;
+    response += `${snippet}\n\n`;
+    response += `🔗 ${match.url}\n\n`;
+
+    if (images.length) {
+      response += `🖼 **Images found:**\n${images.map(i => `- ${i}`).join("\n")}\n\n`;
+    }
+
+    if (files.length) {
+      response += `📄 **Files found:**\n${files.map(f => `- ${f}`).join("\n")}\n\n`;
+    }
+
+    return response.trim();
   }
-}
-
-module.exports = {
-  searchAllContent
 };
