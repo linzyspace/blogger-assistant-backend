@@ -49,6 +49,11 @@ module.exports = {
     const q = query.toLowerCase();
 
     const [posts, pages] = await Promise.all([module.exports.fetchPosts(), module.exports.fetchPages()]);
+    
+    // 🔹 Add debug logs to see how many posts/pages were fetched
+  console.log("DEBUG: Posts fetched:", posts.length);
+  console.log("DEBUG: Pages fetched:", pages.length);
+   console.log("DEBUG: Query:", query); 
     const allContent = [...posts, ...pages];
 
     if (!allContent.length) return null;
