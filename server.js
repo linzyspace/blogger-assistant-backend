@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const chatbot = require("./commonReplies"); // the module above
+const chatbot = require("./data/defaultResponses"); // the module above
 
 const app = express();
 app.use(express.json());
