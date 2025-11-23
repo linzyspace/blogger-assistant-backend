@@ -104,11 +104,11 @@ module.exports = {
       }
     }
 
-    // 2️⃣ Search blog posts + pages
-    const blogResult = await bloggerService.searchAllContent(userMessage);
-    if (blogResult) return blogResult;
+  // 2️⃣ search Blogger posts/pages
+    const blogReply = await bloggerService.searchAllContent(userMessage);
+    if (blogReply) return blogReply;
 
-    // 3️⃣ If nothing found
-    return "Sorry, I couldn't find anything that matches your question in my knowledge or your blog content.";
+    // 3️⃣ fallback
+    return "Sorry, I couldn't find a relevant answer in my knowledge base or blog posts.";
   }
 };
