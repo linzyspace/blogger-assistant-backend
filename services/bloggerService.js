@@ -13,15 +13,7 @@ function stripHTML(html = "") {
   return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 }
 
-function extractImages(html = "") {
-  const $ = cheerio.load(html);
-  const imgs = [];
-  $("img").each((_, img) => {
-    const src = $(img).attr("src");
-    if (src) imgs.push(src);
-  });
-  return imgs;
-}
+
 
 function extractFiles(html = "") {
   const fileRegex = /(https?:\/\/[^\s"'<>]+\.(pdf|doc|docx|xls|xlsx|ppt|pptx|zip))/gi;
@@ -93,9 +85,7 @@ async function searchAllContent(query) {
 
   let reply = `**${match.title}**\n\n${snippet}\n\n🔗 Link: ${match.url}\n`;
 
-  if (images.length)
-    reply += `\n🖼️ Images found:\n${images.slice(0, 5).join("\n")}\n`;
-
+  
   if (files.length)
     reply += `\n📎 Files found:\n${files.join("\n")}\n`;
 
