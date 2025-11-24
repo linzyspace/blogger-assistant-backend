@@ -1,93 +1,33 @@
-// backend.js
 const express = require("express");
 const cors = require("cors");
-const axios = require("axios");
+const chatbot = require("./data/defaultResponses"); // adjust path if needed
 const cheerio = require("cheerio");
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Replace with your Blogger blog feed URL
-const BLOG_FEED_URL = "https://YOUR_BLOG.blogspot.com/feeds/posts/default?alt=json";
-
-// Fetch posts from Blogger
-async function fetchBloggerPosts() {
-  try {
-    const res = await axios.get(BLOG_FEED_URL);
-    const posts = res.data.feed.entry || [];
-    return posts.map(post => {
-      const content = post.content?.$t || "";
-      const $ = cheerio.load(content);
-      const snippet = $.text().trim().substring(0, 200); // short preview
-
-      return {
-        title: post.title.$t,
-        link: post.link.find(l => l.rel === "alternate")?.href || "",
-        snippet
-      };
-    });
-  } catch (err) {
-    console.error("Error fetching Blogger posts:", err);
-    return [];
-  }
-}
-
-// Remove image URLs and "🖼️ Images found" lines
-function cleanText(text) {
-  if (!text) return "";
-  let cleaned = text
-    .split("\n")
-    .filter(line => !line.trim().startsWith("🖼️ Images found"))
-    .join("\n");
-
-  cleaned = cleaned.replace(/https?:\/\/\S+\.(png|jpe?g|gif)/gi, "").trim();
-  return cleaned;
-}
-
 // Chat endpoint
 app.post("/chat", async (req, res) => {
   const { message } = req.body;
+
   if (!message || message.trim() === "") {
-    return res.json({ text: "Please enter a valid message.", link: null, linkText: null });
+    return res.json({ reply: "Please enter a valid message." });
   }
 
   try {
-    const posts = await fetchBloggerPosts();
-
-    // Match title OR snippet
-    const lowerMsg = message.toLowerCase();
-    const match = posts.find(p =>
-      p.title.toLowerCase().includes(lowerMsg) ||
-      p.snippet.toLowerCase().includes(lowerMsg)
-    );
-
-    if (match) {
-      const cleanedSnippet = cleanText(match.snippet || match.title);
-      res.json({
-        text: cleanedSnippet,
-        link: match.link,
-        linkText: "Read more"
-      });
-    } else {
-      res.json({
-        text: "Sorry, no matching blog post was found. Try different keywords!",
-        link: null,
-        linkText: null
-      });
-    }
+    const replyText = await chatbot.getReply(message);
+    return res.json({ reply: replyText });
   } catch (err) {
-    console.error(err);
-    res.json({
-      text: "Server error. Please try again later.",
-      link: null,
-      linkText: null
-    });
+    console.error("Error processing chat:", err);
+    return res.json({ reply: "Server error. Please try again later." });
   }
 });
 
-// Health check
-app.get("/", (req, res) => res.send("Blogger Assistant Backend is running!"));
+// Health check endpoint
+app.get("/", (req, res) => {
+  res.send("Blogger Assistant Backend is running!");
+});
 
 // Start server
 const PORT = process.env.PORT || 3000;
