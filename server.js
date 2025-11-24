@@ -7,19 +7,24 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Replace with your Blogger blog ID or feed URL
+// Replace with your Blogger blog feed URL
 const BLOG_FEED_URL = "https://YOUR_BLOG.blogspot.com/feeds/posts/default?alt=json";
 
+// Fetch posts and extract first image
 async function fetchBloggerPosts() {
   try {
     const res = await axios.get(BLOG_FEED_URL);
     const posts = res.data.feed.entry || [];
+
     return posts.map(post => {
-      // Extract first image from content
-      const content = post.content.$t || "";
+      const content = post.content?.$t || "";
       const $ = cheerio.load(content);
+
+      // Extract first image URL
       const firstImage = $("img").first().attr("src") || null;
-      const snippet = $.text().trim().substring(0, 200); // short preview
+
+      // Text snippet (first 200 chars)
+      const snippet = $.text().trim().substring(0, 200);
 
       return {
         title: post.title.$t,
@@ -37,29 +42,40 @@ async function fetchBloggerPosts() {
 // Chat endpoint
 app.post("/chat", async (req, res) => {
   const { message } = req.body;
+
   if (!message || message.trim() === "") {
-    return res.json({ text: "Please enter a valid message." });
+    return res.json({ text: "Please enter a valid message.", image: null, link: null, linkText: null });
   }
 
   try {
     const posts = await fetchBloggerPosts();
-    const match = posts.find(p =>
-      p.title.toLowerCase().includes(message.toLowerCase())
-    );
+
+    // Match post by keyword in title
+    const match = posts.find(p => p.title.toLowerCase().includes(message.toLowerCase()));
 
     if (match) {
-      res.json({
+      return res.json({
         text: match.snippet || match.title,
+        image: match.image,   // actual image URL
         link: match.link,
-        linkText: "Read more",
-        image: match.image
+        linkText: "Read more"
       });
     } else {
-      res.json({ text: "Sorry, no matching blog post was found.", link: null, linkText: null, image: null });
+      return res.json({
+        text: "Sorry, no matching blog post was found.",
+        image: null,
+        link: null,
+        linkText: null
+      });
     }
   } catch (err) {
     console.error(err);
-    res.json({ text: "Server error. Please try again later.", link: null, linkText: null, image: null });
+    return res.json({
+      text: "Server error. Please try again later.",
+      image: null,
+      link: null,
+      linkText: null
+    });
   }
 });
 
