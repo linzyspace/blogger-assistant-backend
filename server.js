@@ -17,7 +17,6 @@ async function fetchBloggerPosts() {
     const res = await axios.get(BLOG_FEED_URL);
     const posts = res.data.feed.entry || [];
     return posts.map(post => {
-      // Extract content snippet
       const content = post.content?.$t || "";
       const $ = cheerio.load(content);
       const snippet = $.text().trim().substring(0, 200); // short preview
@@ -34,19 +33,15 @@ async function fetchBloggerPosts() {
   }
 }
 
-// Remove "🖼️ Images found" and direct image URLs
-function cleanReplyText(text) {
+// Remove image URLs and "🖼️ Images found" lines
+function cleanText(text) {
   if (!text) return "";
-
-  // Remove lines starting with "🖼️ Images found"
   let cleaned = text
     .split("\n")
     .filter(line => !line.trim().startsWith("🖼️ Images found"))
     .join("\n");
 
-  // Remove any direct image URLs
   cleaned = cleaned.replace(/https?:\/\/\S+\.(png|jpe?g|gif)/gi, "").trim();
-
   return cleaned;
 }
 
@@ -60,13 +55,15 @@ app.post("/chat", async (req, res) => {
   try {
     const posts = await fetchBloggerPosts();
 
-    // Find first matching post by title
+    // Match title OR snippet
+    const lowerMsg = message.toLowerCase();
     const match = posts.find(p =>
-      p.title.toLowerCase().includes(message.toLowerCase())
+      p.title.toLowerCase().includes(lowerMsg) ||
+      p.snippet.toLowerCase().includes(lowerMsg)
     );
 
     if (match) {
-      const cleanedSnippet = cleanReplyText(match.snippet || match.title);
+      const cleanedSnippet = cleanText(match.snippet || match.title);
       res.json({
         text: cleanedSnippet,
         link: match.link,
