@@ -1,90 +1,107 @@
 const axios = require("axios");
 const cheerio = require("cheerio");
 
+// Load Blogger API credentials
 const BLOG_ID = process.env.BLOGGER_BLOG_ID;
 const API_KEY = process.env.BLOGGER_API_KEY;
 
 const BASE = `https://www.googleapis.com/blogger/v3/blogs/${BLOG_ID}`;
 
-module.exports = {
-  fetchPosts: async () => {
-    try {
-      const res = await axios.get(`${BASE}/posts?maxResults=500&key=${API_KEY}`);
-      return res.data.items || [];
-    } catch (err) {
-      console.error("Error fetching posts:", err.response?.status, err.response?.data);
-      return [];
+// ---- Utility Functions ---- //
+
+function stripHTML(html = "") {
+  return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function extractImages(html = "") {
+  const $ = cheerio.load(html);
+  const imgs = [];
+  $("img").each((_, img) => {
+    const src = $(img).attr("src");
+    if (src) imgs.push(src);
+  });
+  return imgs;
+}
+
+function extractFiles(html = "") {
+  const fileRegex = /(https?:\/\/[^\s"'<>]+\.(pdf|doc|docx|xls|xlsx|ppt|pptx|zip))/gi;
+  return html.match(fileRegex) || [];
+}
+
+// ---- Fetch All Posts/Pages (with auto-pagination) ---- //
+
+async function fetchAll(endpoint) {
+  let url = `${BASE}/${endpoint}?maxResults=50&key=${API_KEY}`;
+  let items = [];
+
+  while (url) {
+    const res = await axios.get(url);
+    const data = res.data;
+    if (data.items) items.push(...data.items);
+
+    if (data.nextPageToken) {
+      url = `${BASE}/${endpoint}?maxResults=50&pageToken=${data.nextPageToken}&key=${API_KEY}`;
+    } else {
+      url = null;
     }
-  },
-
-  fetchPages: async () => {
-    try {
-      const res = await axios.get(`${BASE}/pages?maxResults=200&key=${API_KEY}`);
-      return res.data.items || [];
-    } catch (err) {
-      console.error("Error fetching pages:", err.response?.status, err.response?.data);
-      return [];
-    }
-  },
-
-  stripHTML: (html) => html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim(),
-
-  extractImages: (html) => {
-    const $ = cheerio.load(html);
-    const images = [];
-    $("img").each((_, img) => {
-      const src = $(img).attr("src");
-      if (src) images.push(src);
-    });
-    return images;
-  },
-
-  extractFiles: (html) => {
-    const fileRegex = /(https?:\/\/[^\s"'<>]+\.(pdf|doc|docx|xls|xlsx|ppt|pptx))/gi;
-    const matches = html.match(fileRegex);
-    return matches || [];
-  },
-
-  searchAllContent: async (query) => {
-    const q = query.toLowerCase();
-
-    const [posts, pages] = await Promise.all([module.exports.fetchPosts(), module.exports.fetchPages()]);
-    
-    // 🔹 Add debug logs to see how many posts/pages were fetched
-  console.log("DEBUG: Posts fetched:", posts.length);
-  console.log("DEBUG: Pages fetched:", pages.length);
-   console.log("DEBUG: Query:", query); 
-    const allContent = [...posts, ...pages];
-
-    if (!allContent.length) return null;
-
-    // Search posts/pages for query
-    let match = allContent.find(item => {
-      const title = (item.title || "").toLowerCase();
-      const content = module.exports.stripHTML(item.content || "").toLowerCase();
-      return title.includes(q) || content.includes(q);
-    });
-
-    if (!match) {
-      // Fuzzy: match if any word exists in content
-      match = allContent.find(item => {
-        const content = module.exports.stripHTML(item.content || "").toLowerCase();
-        return q.split(" ").some(word => content.includes(word));
-      });
-    }
-
-    if (!match) return null;
-
-    const text = module.exports.stripHTML(match.content || "");
-    const snippet = text.substring(0, 400) + "...";
-    const images = module.exports.extractImages(match.content);
-    const files = module.exports.extractFiles(match.content);
-
-    let reply = `**${match.title}**\n${snippet}\nLink: ${match.url}\n`;
-    if (images.length) reply += `Images: ${images.join(", ")}\n`;
-    if (files.length) reply += `Files: ${files.join(", ")}\n`;
-
-    return reply;
   }
-};
 
+  return items;
+}
+
+// ---- Main Search Logic ---- //
+
+async function searchAllContent(query) {
+  const q = query.toLowerCase();
+
+  // Fetch posts and pages from Blogger API
+  const posts = await fetchAll("posts");
+  const pages = await fetchAll("pages");
+
+  // Combine and remove duplicates using post.id
+  const unique = {};
+  [...posts, ...pages].forEach(item => (unique[item.id] = item));
+  const allContent = Object.values(unique);
+
+  if (!allContent.length) return "No content found on your blog.";
+
+  // ---- ORIGINAL SEARCH: keyword must appear in title or body ---- //
+  let match = allContent.find(item => {
+    const title = (item.title || "").toLowerCase();
+    const content = stripHTML(item.content || "").toLowerCase();
+    return title.includes(q) || content.includes(q);
+  });
+
+  // ---- Fuzzy backup: match any word ---- //
+  if (!match) {
+    const words = q.split(/\s+/);
+    match = allContent.find(item => {
+      const text = stripHTML(item.content || "").toLowerCase();
+      return words.some(word => text.includes(word));
+    });
+  }
+
+  // Nothing found
+  if (!match) return "I could not find anything related to your question.";
+
+  // Build response
+  const textContent = stripHTML(match.content || "");
+  const snippet = textContent.substring(0, 400) + "...";
+
+  const images = extractImages(match.content);
+  const files = extractFiles(match.content);
+
+  let reply = `**${match.title}**\n\n${snippet}\n\n🔗 Link: ${match.url}\n`;
+
+  if (images.length)
+    reply += `\n🖼️ Images found:\n${images.slice(0, 5).join("\n")}\n`;
+
+  if (files.length)
+    reply += `\n📎 Files found:\n${files.join("\n")}\n`;
+
+  return reply;
+}
+
+module.exports = {
+  searchAllContent
+};
