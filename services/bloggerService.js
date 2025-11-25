@@ -93,9 +93,7 @@ async function searchAllContent(query) {
 
   let reply = `**${match.title}**\n\n${snippet}\n\n🔗 Link: ${match.url}\n`;
 
-  if (images.length)
-    reply += `\n🖼️ Images found:\n${images.slice(0, 5).join("\n")}\n`;
-
+  
   if (files.length)
     reply += `\n📎 Files found:\n${files.join("\n")}\n`;
 
